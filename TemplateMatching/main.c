@@ -24,7 +24,7 @@ typedef struct imageContainer {
 } image;
 
 typedef struct solutionLocation {
-    int x,y,SAD;
+    int x,y,CC;
 } sol;
 
 int calculateCoord(int x, int y, int imageWidth) {
@@ -33,15 +33,15 @@ int calculateCoord(int x, int y, int imageWidth) {
 }
 
 sol templateMatch(image search, image template) {
-    int minSAD = INT_MAX;
-    int SAD;
+    int lastCC = 0;
+    int CC;
     
     sol solution;
     
     //loop through search image
     for (int sx = 0; sx <= search.x - template.x; sx++) {
         for (int sy = 0; sy <= search.y - template.y; sy++ ) {
-            SAD = 0;
+            CC = 0;
             //loop through template starting position
             for (int tx = 0; tx < template.x; tx++) {
                 for (int ty = 0; ty < template.y; ty++) {
@@ -52,16 +52,16 @@ sol templateMatch(image search, image template) {
                     unsigned char searchPixel = search.data[soffset];
                     unsigned char templatePixel = template.data[toffset];
                     
-                    SAD += abs(searchPixel - templatePixel);
+                    CC += searchPixel * templatePixel;
                     
                 }
             }
             
-            if (minSAD > SAD) {
-                minSAD = SAD;
+            if (lastCC < CC) {
+                lastCC = CC;
                 solution.x = sx;
                 solution.y = sy;
-                solution.SAD = SAD;
+                solution.CC = CC;
                 
             }
             
@@ -103,7 +103,7 @@ int main(int argc, const char * argv[]) {
 
     
     sol solution = templateMatch(search, template);
-    printf("Best Match at: x:%u, y:%u, SAD:%i\n", solution.x, solution.y, solution.SAD);
+    printf("Best Match at: x:%u, y:%u, CC:%i\n", solution.x, solution.y, solution.CC);
     
     
     result = drawBox(search, template, solution);
