@@ -17,6 +17,9 @@
 #include "stb_image.h"
 #include "stb_image_write.h"
 
+typedef struct SumSquareD {
+    int SSDr, SSDg, SSDb, sum;
+} SSD;
 
 typedef struct imageContainer {
     int x,y,n;
@@ -24,24 +27,36 @@ typedef struct imageContainer {
 } image;
 
 typedef struct solutionLocation {
-    int x,y,SSD;
+    int x,y;
+    SSD colorD;
 } sol;
+
 
 int calculateCoord(int x, int y, int imageWidth) {
     //offset = (row * NUMCOLS) + column
-    return (y*imageWidth)+x;
+    return (3*((y*imageWidth)+x));
+}
+
+SSD newSSD(void) {
+    SSD new;
+    new.SSDb=0;
+    new.SSDg=0;
+    new.SSDr=0;
+    new.sum=0;
+    
+    return new;
 }
 
 sol templateMatch(image search, image template) {
     int lastSSD = INT_MAX;
-    int SSD;
+    SSD colorD;
     
     sol solution;
     
     //loop through search image
     for (int sx = 0; sx <= search.x - template.x; sx++) {
         for (int sy = 0; sy <= search.y - template.y; sy++ ) {
-            SSD = 0;
+            colorD = newSSD();
             //loop through template starting position
             for (int tx = 0; tx < template.x; tx++) {
                 for (int ty = 0; ty < template.y; ty++) {
@@ -49,23 +64,30 @@ sol templateMatch(image search, image template) {
                     int soffset = calculateCoord(sx+tx, sy+ty, search.x);
                     int toffset = calculateCoord(tx, ty, template.x);
                     
-                    unsigned char searchPixel = search.data[soffset];
-                    unsigned char templatePixel = template.data[toffset];
+                    unsigned char *searchPixel = &search.data[soffset];
+                    unsigned char *templatePixel = &template.data[toffset];
                     
-                    SSD += pow((searchPixel - templatePixel), 2);
-                    
+                    colorD.SSDb += pow((*searchPixel - *templatePixel), 2);
+                    colorD.SSDr += pow((*(searchPixel+1) - *(templatePixel+1)), 2);
+                    colorD.SSDg += pow((*(searchPixel+2) - *(templatePixel+2)), 2);
+
                 }
+
             }
             
-            if (lastSSD > SSD) {
-                lastSSD = SSD;
+            colorD.sum = colorD.SSDb + colorD.SSDg + colorD.SSDr;
+
+            if (lastSSD > colorD.sum) {
+                lastSSD = colorD.sum;
                 solution.x = sx;
                 solution.y = sy;
-                solution.SSD = SSD;
+                solution.colorD = colorD;
                 
             }
             
+            //if (sx%10==0 && sy == 0) printf("%i %i\n", sx, sy);
         }
+
     }
     return solution;
 }
@@ -93,22 +115,28 @@ image drawBox(image search, image template, sol solution) {
 
 int main(int argc, const char * argv[]) {
     
-    
-    image search, template, result;
-    search.data = stbi_load("input.png", &search.x, &search.y, &search.n, 1);
-    template.data = stbi_load("template.png", &template.x, &template.y, &template.n, 1);
-    
-    printf("Template Size: %i, %i\n", template.x, template.y);
-    printf("Search Size: %i, %i\n", search.x, search.y);
+    int channels = 3;
+    const char *searchNames[256] = {"images//license.png", "images//input.png"};
+    const char *templateNames[256] = {"images//template2.png", "images//template.png"};
+    for (int i = 0; i < 2; i++) {
+        image search, template, result;
+        search.data = stbi_load(searchNames[i], &search.x, &search.y, &search.n, channels);
+        template.data = stbi_load(templateNames[i], &template.x, &template.y, &template.n, channels);
+        
+        printf("Template Size: %i, %i\n", template.x, template.y);
+        printf("Search Size: %i, %i\n", search.x, search.y);
 
+        
+        sol solution = templateMatch(search, template);
+        
+        printf("Best Match at: x:%u, y:%u, SSD:%i\n\n", solution.x, solution.y, solution.colorD.sum);
+        
+        
+        result = drawBox(search, template, solution);
+        char outputName[256];
+        snprintf(outputName, sizeof outputName, "output%i.png",i);
+        stbi_write_png(outputName, result.x, result.y, channels, result.data, result.x*channels);
     
-    sol solution = templateMatch(search, template);
-    printf("Best Match at: x:%u, y:%u, SSD:%i\n", solution.x, solution.y, solution.SSD);
-    
-    
-    result = drawBox(search, template, solution);
-    stbi_write_png("output.png", result.x, result.y, 1, result.data, result.x*1);
-    
-    
+    }
     return 0;
 }

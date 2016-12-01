@@ -25,8 +25,6 @@
 /* Begin PBXFileReference section */
 		1BE34DEE1DEF46B0002D46B1 /* TemplateMatching */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = TemplateMatching; sourceTree = BUILT_PRODUCTS_DIR; };
 		1BE34DF11DEF46B1002D46B1 /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = main.c; path = TemplateMatching/main.c; sourceTree = SOURCE_ROOT; };
-		1BE34DFB1DEF4E2C002D46B1 /* input.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = input.png; sourceTree = "<group>"; };
-		1BE34DFC1DEF4E2C002D46B1 /* template.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = template.png; sourceTree = "<group>"; };
 		1BE34DFD1DEF64A8002D46B1 /* stb_image.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = stb_image.h; sourceTree = "<group>"; };
 		1BE34DFE1DEF64A8002D46B1 /* stb_image_write.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = stb_image_write.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -63,8 +61,6 @@
 			children = (
 				1BE34DFD1DEF64A8002D46B1 /* stb_image.h */,
 				1BE34DFE1DEF64A8002D46B1 /* stb_image_write.h */,
-				1BE34DFB1DEF4E2C002D46B1 /* input.png */,
-				1BE34DFC1DEF4E2C002D46B1 /* template.png */,
 				1BE34DF11DEF46B1002D46B1 /* main.c */,
 			);
 			path = TemplateMatching;
@@ -253,6 +249,7 @@
 				1BE34DF71DEF46B1002D46B1 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
