@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
+#include <math.h>
 
 #include <mach/mach_time.h>
 #include <stdint.h>
@@ -56,6 +57,14 @@ void init_clock_frequency ()
 
 int calculateCoord(int x, int y, int imageWidth) {
     //offset = (row * NUMCOLS) + column
+    return (3*((y*imageWidth)+x));
+}
+int calculateCoordXY(int x, int y, int imageWidth, int imageHeight) {
+    //offset = (row * NUMCOLS) + column
+    if ((x*y) > (imageWidth*imageHeight)) return -1;
+    if (x > imageWidth || x < 0) return -1;
+    if (y > imageHeight || y < 0) return -1;
+    
     return (3*((y*imageWidth)+x));
 }
 
@@ -158,7 +167,6 @@ void runTemplateMatch(const char ** searchFiles, const char ** templateFiles, in
         search.data = stbi_load(searchFiles[i], &search.x, &search.y, &search.n, channels);
         template.data = stbi_load(templateFiles[i], &template.x, &template.y, &template.n, channels);
         
-        stbi_write_png("test.png", search.x, search.y, channels, search.data, result.x*channels);
         
         printf("Template Size: %i, %i\n", template.x, template.y);
         printf("Search Size: %i, %i\n", search.x, search.y);
@@ -182,16 +190,75 @@ void runTemplateMatch(const char ** searchFiles, const char ** templateFiles, in
     
 }
 
+void copyImage(image * src, image * dest) {
+    dest->x = src->x;
+    dest->y = src->y;
+    dest->n = src->n;
+    dest->data = malloc(sizeof (UINT8_MAX) * src->x * src->y* src->n);
+    memcpy(dest->data, src->data, sizeof src);
+}
+
+void writeImage(image img, const char *filename) {
+    stbi_write_png(filename, img.x, img.y, 3, img.data, 0);
+}
+
+void rotateImage(image * src, image * dest, double angle) {
+    double radians = angle * M_PI/180;
+    double cosR = cos(radians);
+    double sinR = sin(radians);
+    
+    copyImage(src, dest);
+    
+    int centerx = src->x/2;
+    int centery= src->y/2;
+    
+    for (int x = 0; x < src->x; x++) {
+        int m = x - centerx;
+        for (int y = 0; y < src->y; y++) {
+            int destIndex = calculateCoordXY(x, y, src->x, src->y);
+            int n = y - centery;
+            int newx = (int) (m * cosR + n * sinR) + centerx;
+            int newy = (int) (n * cosR - m * sinR) + centery;
+            int sourceIndex = calculateCoordXY(newx, newy, src->x, src->y);
+            
+            if (sourceIndex == -1) {
+                dest->data[destIndex] = 0;
+                dest->data[destIndex+1] = 0;
+                dest->data[destIndex+2] = 0;
+                
+            } else {
+                dest->data[destIndex] = src->data[sourceIndex];
+                dest->data[destIndex+1] = src->data[sourceIndex+1];
+                dest->data[destIndex+2] = src->data[sourceIndex+2];
+
+            }
+        }
+    }
+    
+}
+
+void resizeImage(image * img) {
+    
+    copyImage(img, testImage);
+
+    
+}
+
 int main(int argc, const char * argv[]) {
     
     init_clock_frequency();
     
+    image test, rotate;
+    test.data = stbi_load("images//license.png", &test.x, &test.y, &test.n, 3);
+
+    rotateImage(&test, &rotate, 25);
+    writeImage(rotate, "test.png");
+    
     const char *searchNames[256] = {"images//license.png", "images//input.png"};
     const char *templateNames[256] = {"images//template2.png", "images//template.png"};
     
-    runTemplateMatch(searchNames, templateNames, 2, 3);
+    //runTemplateMatch(searchNames, templateNames, 2, 3);
     
-    system("PWD");
 
 
     return 0;
