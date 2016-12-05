@@ -39,6 +39,10 @@ typedef struct solutionLocation {
     SSD colorD;
 } sol;
 
+typedef struct coordinatePair {
+    int x,y;
+} cpair;
+
 #ifdef PLATFORM_OSX
 static uint64_t freq_num   = 0;
 static uint64_t freq_denom = 0;
@@ -67,6 +71,8 @@ int calculateCoordXY(int x, int y, int imageWidth, int imageHeight) {
     
     return (3*((y*imageWidth)+x));
 }
+
+
 
 SSD newSSD(void) {
     SSD new;
@@ -206,13 +212,19 @@ void rotateImage(image * src, image * dest, double angle) {
     
 }
 
+void blackPixel (unsigned char * ppointer) {
+    *ppointer = 0;
+    *(ppointer+1)=255;
+    *(ppointer+2)=0;
+}
 
-void resizeImage(image * img, int y, int x) {
+
+void resizeImage(image * img, int yAdd, int xAdd) {
     image testImage;
     copyImage(img, &testImage);
-    
-    testImage.y = testImage.y + y;
-    //testImage.x = testImage.x + x;
+    xAdd = 100;
+    testImage.y = testImage.y + yAdd;
+    testImage.x = testImage.x + xAdd;
 
     size_t array_size = sizeof (UINT8_MAX) * testImage.x * testImage. y* 3;
 
@@ -220,17 +232,24 @@ void resizeImage(image * img, int y, int x) {
     int originalIndex = img->x * img->y * 3;
     int newIndex = testImage.x * testImage.y * 3;
     
+    int y_offset = yAdd/2;
+    int x_offset = xAdd/2;
     testImage.data = malloc(array_size);
-    int offset = (y/2)*testImage.x*3;
-    
-    for (int i = 0; i <= newIndex; i++) {
-        
-        if (i < (originalIndex+offset) && i >= offset) {
-            testImage.data[i] = img->data[i-offset];
-        } else {
-            testImage.data[i] = 0;
+    memset(testImage.data, 150, array_size);
+
+    for (int x = 0; x <= testImage.x; x++) {
+        for (int y = 0; y <= testImage.y; y++) {
+       
+        int index = calculateCoordXY(x, y, img->x, img->y);
+        int newIndex = calculateCoordXY(x+x_offset, y+y_offset, testImage.x, testImage.y);
+        if (!(x >= img->x || y >= img->y)) {
+            testImage.data[newIndex] = img->data[index];
+            testImage.data[newIndex+1] = img->data[index+1];
+            testImage.data[newIndex+2] = img->data[index+2];
+            }
         }
     }
+    
     
     //gotta free test image later
     copyImage(&testImage, img);
@@ -290,15 +309,15 @@ int main(int argc, const char * argv[]) {
     test.data = stbi_load("images//license.png", &test.x, &test.y, &test.n, 0);
     squareImage(&test);
 
-    rotateImage(&test, &rotate, 25);
-    writeImage(rotate, "test.png");
+    //rotateImage(&test, &rotate, 25);
+    writeImage(test, "test.png");
     
     const char *searchNames[256] = {"images//license.png", "images//input.png"};
     const char *templateNames[256] = {"images//template2.png", "images//template.png"};
     
     
     
-    runTemplateMatch(searchNames, templateNames, 2, 3);
+    //runTemplateMatch(searchNames, templateNames, 2, 3);
     
 
 
