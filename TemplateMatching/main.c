@@ -98,9 +98,11 @@ sol templateMatch(image search, image template) {
                     unsigned char *searchPixel = &search.data[soffset];
                     unsigned char *templatePixel = &template.data[toffset];
                     
-                    colorD.SSDb += pow((*searchPixel - *templatePixel), 2);
-                    colorD.SSDr += pow((*(searchPixel+1) - *(templatePixel+1)), 2);
-                    colorD.SSDg += pow((*(searchPixel+2) - *(templatePixel+2)), 2);
+                    if (!(*(templatePixel)==0 && *(templatePixel+1)==0 && *(templatePixel+2)==0)) {
+                        colorD.SSDb += pow((*searchPixel - *templatePixel), 2);
+                        colorD.SSDr += pow((*(searchPixel+1) - *(templatePixel+1)), 2);
+                        colorD.SSDg += pow((*(searchPixel+2) - *(templatePixel+2)), 2);
+                    }
 
                 }
 
@@ -155,47 +157,14 @@ uint64_t tickTimeDiff(uint64_t before, uint64_t after) {
 }
 #endif
 
-void runTemplateMatch(const char ** searchFiles, const char ** templateFiles, int numFiles, int channels) {
-    //int channels = 3;
-    //int numFiles = 2;
-    
-    for (int i = 0; i < numFiles; i++) {
-        
-        uint64_t tick_before = mach_absolute_time();
-        
-        image search, template, result;
-        search.data = stbi_load(searchFiles[i], &search.x, &search.y, &search.n, channels);
-        template.data = stbi_load(templateFiles[i], &template.x, &template.y, &template.n, channels);
-        
-        
-        printf("Template Size: %i, %i\n", template.x, template.y);
-        printf("Search Size: %i, %i\n", search.x, search.y);
-        
-        
-        sol solution = templateMatch(search, template);
-        
-        printf("Best Match at: x:%u, y:%u, SSD:%i\n\n", solution.x, solution.y, solution.colorD.sum);
-        
-        
-        result = drawBox(search, template, solution);
-        char outputName[256];
-        snprintf(outputName, sizeof outputName, "output%i.png",i);
-        stbi_write_png(outputName, result.x, result.y, channels, result.data, result.x*channels);
-        
-        uint64_t tick_after = mach_absolute_time();
-        
-        printf("Took %llu ms\n", tickTimeDiff(tick_before, tick_after));
-        
-    }
-    
-}
 
 void copyImage(image * src, image * dest) {
     dest->x = src->x;
     dest->y = src->y;
     dest->n = src->n;
-    dest->data = malloc(sizeof (UINT8_MAX) * src->x * src->y* src->n);
-    memcpy(dest->data, src->data, sizeof src);
+    size_t array_size = sizeof (UINT8_MAX) * src->x * src->y * 3;
+    dest->data = malloc(array_size);
+    memcpy(dest->data, src->data, array_size);
 }
 
 void writeImage(image img, const char *filename) {
@@ -237,19 +206,89 @@ void rotateImage(image * src, image * dest, double angle) {
     
 }
 
-void resizeImage(image * img) {
+
+void resizeImage(image * img, int y, int x) {
+    image testImage;
+    copyImage(img, &testImage);
     
-    copyImage(img, testImage);
+    testImage.y = testImage.y + y;
+    //testImage.x = testImage.x + x;
+
+    size_t array_size = sizeof (UINT8_MAX) * testImage.x * testImage. y* 3;
 
     
+    int originalIndex = img->x * img->y * 3;
+    int newIndex = testImage.x * testImage.y * 3;
+    
+    testImage.data = malloc(array_size);
+    int offset = (y/2)*testImage.x*3;
+    
+    for (int i = 0; i <= newIndex; i++) {
+        
+        if (i < (originalIndex+offset) && i >= offset) {
+            testImage.data[i] = img->data[i-offset];
+        } else {
+            testImage.data[i] = 0;
+        }
+    }
+    
+    //gotta free test image later
+    copyImage(&testImage, img);
+
 }
+void squareImage(image *img) {
+    if (img->x > img->y) {
+        resizeImage(img, img->x-img->y, 0);
+    }
+    if (img->y > img->x) {
+        resizeImage(img, 0, img->y-img->x);
+    }
+}
+
+void runTemplateMatch(const char ** searchFiles, const char ** templateFiles, int numFiles, int channels) {
+    //int channels = 3;
+    //int numFiles = 2;
+    numFiles = 1;
+    for (int i = 0; i < numFiles; i++) {
+        
+        uint64_t tick_before = mach_absolute_time();
+        
+        image search, template, result;
+        search.data = stbi_load(searchFiles[i], &search.x, &search.y, &search.n, 3);
+        template.data = stbi_load(templateFiles[i], &template.x, &template.y, &template.n, 3);
+        
+        
+        printf("Template Size: %i, %i, %i\n", template.x, template.y, template.n);
+        printf("Search Size: %i, %i, %i\n", search.x, search.y, search.n);
+        
+        //resizeImage(&template, 20, 20);
+        writeImage(template, "outrotate.png");
+        sol solution = templateMatch(search, template);
+        
+        printf("Best Match at: x:%u, y:%u, SSD:%i\n\n", solution.x, solution.y, solution.colorD.sum);
+        
+        
+        result = drawBox(search, template, solution);
+        char outputName[256];
+        snprintf(outputName, sizeof outputName, "output%i.png",i);
+        stbi_write_png(outputName, result.x, result.y, channels, result.data, result.x*channels);
+        
+        uint64_t tick_after = mach_absolute_time();
+        
+        printf("Took %llu ms\n", tickTimeDiff(tick_before, tick_after));
+        
+    }
+    
+}
+
 
 int main(int argc, const char * argv[]) {
     
     init_clock_frequency();
     
     image test, rotate;
-    test.data = stbi_load("images//license.png", &test.x, &test.y, &test.n, 3);
+    test.data = stbi_load("images//license.png", &test.x, &test.y, &test.n, 0);
+    squareImage(&test);
 
     rotateImage(&test, &rotate, 25);
     writeImage(rotate, "test.png");
@@ -257,7 +296,9 @@ int main(int argc, const char * argv[]) {
     const char *searchNames[256] = {"images//license.png", "images//input.png"};
     const char *templateNames[256] = {"images//template2.png", "images//template.png"};
     
-    //runTemplateMatch(searchNames, templateNames, 2, 3);
+    
+    
+    runTemplateMatch(searchNames, templateNames, 2, 3);
     
 
 
