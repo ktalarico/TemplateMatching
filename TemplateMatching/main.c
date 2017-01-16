@@ -11,8 +11,8 @@
 #include <stdlib.h>
 #include <limits.h>
 #include <math.h>
+#include <sys/time.h>
 
-#include <mach/mach_time.h>
 #include <stdint.h>
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -20,10 +20,11 @@
 #include "stb_image.h"
 #include "stb_image_write.h"
 
-#define PLATFORM_OSX
 
-
-
+#ifdef ROTATION_ENABLED
+#define ROTATION 360
+#else
+#define ROTATION 1
 
 typedef struct SumSquareD {
     int SSDr, SSDg, SSDb, sum;
@@ -43,22 +44,28 @@ typedef struct coordinatePair {
     int x,y;
 } cpair;
 
-#ifdef PLATFORM_OSX
-static uint64_t freq_num   = 0;
-static uint64_t freq_denom = 0;
 
-void init_clock_frequency ()
-{
-    mach_timebase_info_data_t tb;
+void blackPixel (unsigned char * ppointer);
+void rotateImage(image * src, image * dest, double angle);
+void freeImage(image * img);
+int calculateCoordXY(int x, int y, int imageWidth, int imageHeight);
+SSD newSSD(void);
+
+
+SSD newSSD(void) {
+    SSD new;
+    new.SSDb=0;
+    new.SSDg=0;
+    new.SSDr=0;
+    new.sum=0;
     
-    if (mach_timebase_info (&tb) == KERN_SUCCESS && tb.denom != 0) {
-        freq_num   = (uint64_t) tb.numer;
-        freq_denom = (uint64_t) tb.denom;
-    }
+    return new;
 }
-#endif
 
 
+void freeImage(image * img) {
+    free(img->data);
+}
 int calculateCoord(int x, int y, int imageWidth) {
     //offset = (row * NUMCOLS) + column
     return (3*((y*imageWidth)+x));
@@ -74,59 +81,58 @@ int calculateCoordXY(int x, int y, int imageWidth, int imageHeight) {
 
 
 
-SSD newSSD(void) {
-    SSD new;
-    new.SSDb=0;
-    new.SSDg=0;
-    new.SSDr=0;
-    new.sum=0;
-    
-    return new;
-}
-
 sol templateMatch(image search, image template) {
     int lastSSD = INT_MAX;
     SSD colorD;
     
     sol solution = {};
-    
+    image templateRotation = {};
     //loop through search image
-    for (int sx = 0; sx <= search.x - template.x; sx++) {
-        for (int sy = 0; sy <= search.y - template.y; sy++ ) {
-            colorD = newSSD();
-            //loop through template starting position
-            for (int tx = 0; tx < template.x; tx++) {
-                for (int ty = 0; ty < template.y; ty++) {
-                    
-                    int soffset = calculateCoord(sx+tx, sy+ty, search.x);
-                    int toffset = calculateCoord(tx, ty, template.x);
-                    
-                    unsigned char *searchPixel = &search.data[soffset];
-                    unsigned char *templatePixel = &template.data[toffset];
-                    
-                    if (!(*(templatePixel)==0 && *(templatePixel+1)==0 && *(templatePixel+2)==0)) {
-                        colorD.SSDb += pow((*searchPixel - *templatePixel), 2);
-                        colorD.SSDr += pow((*(searchPixel+1) - *(templatePixel+1)), 2);
-                        colorD.SSDg += pow((*(searchPixel+2) - *(templatePixel+2)), 2);
+    int comparision = 0;
+    for (int rotation = 0; rotation < ROTATION; rotation++) {
+        rotateImage(&template, &templateRotation, rotation);
+        printf("Rotation: %i\n", rotation);
+
+        for (int sx = 0; sx <= search.x - template.x; sx++) {
+            for (int sy = 0; sy <= search.y - template.y; sy++ ) {
+                
+                colorD = newSSD();
+                //loop through template starting position
+                for (int tx = 0; tx < templateRotation.x; tx++) {
+                    for (int ty = 0; ty < templateRotation.y; ty++) {
+                        comparision++;
+                        int soffset = calculateCoord(sx+tx, sy+ty, search.x);
+                        int toffset = calculateCoord(tx, ty, templateRotation.x);
+                        
+                        unsigned char *searchPixel = &search.data[soffset];
+                        unsigned char *templatePixel = &templateRotation.data[toffset];
+                        
+                        if (!(*(templatePixel)==0 && *(templatePixel+1)==0 && *(templatePixel+2)==0)) {
+                            colorD.SSDb += pow((*searchPixel - *templatePixel), 2);
+                            colorD.SSDr += pow((*(searchPixel+1) - *(templatePixel+1)), 2);
+                            colorD.SSDg += pow((*(searchPixel+2) - *(templatePixel+2)), 2);
+                        }
+
                     }
 
                 }
-
-            }
-            
-            colorD.sum = colorD.SSDb + colorD.SSDg + colorD.SSDr;
-
-            if (lastSSD > colorD.sum) {
-                lastSSD = colorD.sum;
-                solution.x = sx;
-                solution.y = sy;
-                solution.colorD = colorD;
                 
-            }
-            
-            //if (sx%10==0 && sy == 0) printf("%i %i\n", sx, sy);
-        }
+                colorD.sum = colorD.SSDb + colorD.SSDg + colorD.SSDr;
 
+                if (lastSSD > colorD.sum) {
+                    lastSSD = colorD.sum;
+                    solution.x = sx;
+                    solution.y = sy;
+                    solution.colorD = colorD;
+                    
+                }
+            
+            
+                //if (sx%10==0 && sy == 0) printf("%i %i\n", sx, sy);
+            }
+        }
+        printf("%i", comparision);
+        freeImage(&templateRotation);
     }
     return solution;
 }
@@ -152,16 +158,6 @@ image drawBox(image search, image template, sol solution) {
     
     return temp;
 }
-#ifdef PLATFORM_OSX
-uint64_t tickTimeDiff(uint64_t before, uint64_t after) {
-    uint64_t value_diff =  after-before;
-    value_diff /= 1000000;
-    value_diff *= freq_num;
-    value_diff /= freq_denom;
-    
-    return value_diff;
-}
-#endif
 
 
 void copyImage(image * src, image * dest) {
@@ -197,10 +193,7 @@ void rotateImage(image * src, image * dest, double angle) {
             int sourceIndex = calculateCoordXY(newx, newy, src->x, src->y);
             
             if (sourceIndex == -1) {
-                dest->data[destIndex] = 0;
-                dest->data[destIndex+1] = 0;
-                dest->data[destIndex+2] = 0;
-                
+                blackPixel(&dest->data[destIndex]);
             } else {
                 dest->data[destIndex] = src->data[sourceIndex];
                 dest->data[destIndex+1] = src->data[sourceIndex+1];
@@ -214,7 +207,7 @@ void rotateImage(image * src, image * dest, double angle) {
 
 void blackPixel (unsigned char * ppointer) {
     *ppointer = 0;
-    *(ppointer+1)=255;
+    *(ppointer+1)=0;
     *(ppointer+2)=0;
 }
 
@@ -222,7 +215,6 @@ void blackPixel (unsigned char * ppointer) {
 void resizeImage(image * img, int yAdd, int xAdd) {
     image testImage;
     copyImage(img, &testImage);
-    xAdd = 100;
     testImage.y = testImage.y + yAdd;
     testImage.x = testImage.x + xAdd;
 
@@ -235,7 +227,7 @@ void resizeImage(image * img, int yAdd, int xAdd) {
     int y_offset = yAdd/2;
     int x_offset = xAdd/2;
     testImage.data = malloc(array_size);
-    memset(testImage.data, 150, array_size);
+    memset(testImage.data, 0, array_size);
 
     for (int x = 0; x <= testImage.x; x++) {
         for (int y = 0; y <= testImage.y; y++) {
@@ -251,8 +243,8 @@ void resizeImage(image * img, int yAdd, int xAdd) {
     }
     
     
-    //gotta free test image later
     copyImage(&testImage, img);
+    freeImage(&testImage);
 
 }
 void squareImage(image *img) {
@@ -269,8 +261,10 @@ void runTemplateMatch(const char ** searchFiles, const char ** templateFiles, in
     //int numFiles = 2;
     numFiles = 1;
     for (int i = 0; i < numFiles; i++) {
+    
+        struct timeval before, after;
         
-        uint64_t tick_before = mach_absolute_time();
+        gettimeofday(&before, NULL);
         
         image search, template, result;
         search.data = stbi_load(searchFiles[i], &search.x, &search.y, &search.n, 3);
@@ -280,8 +274,8 @@ void runTemplateMatch(const char ** searchFiles, const char ** templateFiles, in
         printf("Template Size: %i, %i, %i\n", template.x, template.y, template.n);
         printf("Search Size: %i, %i, %i\n", search.x, search.y, search.n);
         
-        //resizeImage(&template, 20, 20);
-        writeImage(template, "outrotate.png");
+        //squareImage(&template);
+        //writeImage(template, "outrotate.png");
         sol solution = templateMatch(search, template);
         
         printf("Best Match at: x:%u, y:%u, SSD:%i\n\n", solution.x, solution.y, solution.colorD.sum);
@@ -291,10 +285,11 @@ void runTemplateMatch(const char ** searchFiles, const char ** templateFiles, in
         char outputName[256];
         snprintf(outputName, sizeof outputName, "output%i.png",i);
         stbi_write_png(outputName, result.x, result.y, channels, result.data, result.x*channels);
-        
-        uint64_t tick_after = mach_absolute_time();
-        
-        printf("Took %llu ms\n", tickTimeDiff(tick_before, tick_after));
+
+        gettimeofday(&after, NULL);
+        long time = (after.tv_sec * 1000000 + after.tv_usec)-(before.tv_sec * 1000000 + before.tv_usec);
+        printf("Took %ld.%ld seconds\n", time/1000000, time%1000000);
+
         
     }
     
@@ -302,8 +297,6 @@ void runTemplateMatch(const char ** searchFiles, const char ** templateFiles, in
 
 
 int main(int argc, const char * argv[]) {
-    
-    init_clock_frequency();
     
     image test, rotate;
     test.data = stbi_load("images//license.png", &test.x, &test.y, &test.n, 0);
@@ -313,11 +306,11 @@ int main(int argc, const char * argv[]) {
     writeImage(test, "test.png");
     
     const char *searchNames[256] = {"images//license.png", "images//input.png"};
-    const char *templateNames[256] = {"images//template2.png", "images//template.png"};
+    const char *templateNames[256] = {"images//template2_old.png", "images//template.png"};
     
     
     
-    //runTemplateMatch(searchNames, templateNames, 2, 3);
+    runTemplateMatch(searchNames, templateNames, 2, 3);
     
 
 
