@@ -20,11 +20,13 @@
 #include "stb_image.h"
 #include "stb_image_write.h"
 
+#define ROTATION_ENABLED
 
 #ifdef ROTATION_ENABLED
 #define ROTATION 360
 #else
 #define ROTATION 1
+#endif
 
 typedef struct SumSquareD {
     int SSDr, SSDg, SSDb, sum;
@@ -131,7 +133,7 @@ sol templateMatch(image search, image template) {
                 //if (sx%10==0 && sy == 0) printf("%i %i\n", sx, sy);
             }
         }
-        printf("%i", comparision);
+        //printf("%i", comparision);
         freeImage(&templateRotation);
     }
     return solution;
@@ -164,7 +166,7 @@ void copyImage(image * src, image * dest) {
     dest->x = src->x;
     dest->y = src->y;
     dest->n = src->n;
-    size_t array_size = sizeof (UINT8_MAX) * src->x * src->y * 3;
+    size_t array_size = sizeof (unsigned char) * src->x * src->y * 3;
     dest->data = malloc(array_size);
     memcpy(dest->data, src->data, array_size);
 }
@@ -218,7 +220,7 @@ void resizeImage(image * img, int yAdd, int xAdd) {
     testImage.y = testImage.y + yAdd;
     testImage.x = testImage.x + xAdd;
 
-    size_t array_size = sizeof (UINT8_MAX) * testImage.x * testImage. y* 3;
+    size_t array_size = sizeof (unsigned char) * testImage.x * testImage. y* 3;
 
     
     int originalIndex = img->x * img->y * 3;
@@ -299,14 +301,14 @@ void runTemplateMatch(const char ** searchFiles, const char ** templateFiles, in
 int main(int argc, const char * argv[]) {
     
     image test, rotate;
-    test.data = stbi_load("images//license.png", &test.x, &test.y, &test.n, 0);
+    test.data = stbi_load("images/license.png", &test.x, &test.y, &test.n, 0);
     squareImage(&test);
 
     //rotateImage(&test, &rotate, 25);
     writeImage(test, "test.png");
     
-    const char *searchNames[256] = {"images//license.png", "images//input.png"};
-    const char *templateNames[256] = {"images//template2_old.png", "images//template.png"};
+    const char *searchNames[256] = {"images/license.png", "images/input.png"};
+    const char *templateNames[256] = {"images/template2_old.png", "images/template.png"};
     
     
     
