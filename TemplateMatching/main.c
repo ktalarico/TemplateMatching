@@ -259,9 +259,7 @@ void squareImage(image *img) {
 }
 
 void runTemplateMatch(const char ** searchFiles, const char ** templateFiles, int numFiles, int channels) {
-    //int channels = 3;
-    //int numFiles = 2;
-    numFiles = 1;
+
     for (int i = 0; i < numFiles; i++) {
     
         struct timeval before, after;
@@ -285,7 +283,7 @@ void runTemplateMatch(const char ** searchFiles, const char ** templateFiles, in
         
         result = drawBox(search, template, solution);
         char outputName[256];
-        snprintf(outputName, sizeof outputName, "output%i.png",i);
+        snprintf(outputName, sizeof outputName, "results/output%i.png",i);
         stbi_write_png(outputName, result.x, result.y, channels, result.data, result.x*channels);
 
         gettimeofday(&after, NULL);
@@ -305,14 +303,14 @@ int main(int argc, const char * argv[]) {
     squareImage(&test);
 
     //rotateImage(&test, &rotate, 25);
-    writeImage(test, "test.png");
+    //writeImage(test, "test.png");
     
-    const char *searchNames[256] = {"images/license.png", "images/input.png"};
-    const char *templateNames[256] = {"images/template2_old.png", "images/template.png"};
+    const char *searchNames[256] = {"images/s1.png", "images/s2.png"};
+    const char *templateNames[256] = {"images/t1.png", "images/t2.png"};
     
+    int filesToRun = 1; //Use 2 to run both s1 and s2
     
-    
-    runTemplateMatch(searchNames, templateNames, 2, 3);
+    runTemplateMatch(searchNames, templateNames, filesToRun, 3);
     
 
 
