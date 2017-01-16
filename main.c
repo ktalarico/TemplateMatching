@@ -128,9 +128,7 @@ sol templateMatch(image search, image template) {
                     solution.colorD = colorD;
                     
                 }
-            
-            
-                //if (sx%10==0 && sy == 0) printf("%i %i\n", sx, sy);
+                        
             }
         }
         //printf("%i", comparision);
