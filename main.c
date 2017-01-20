@@ -295,7 +295,7 @@ void runTemplateMatch(const char ** searchFiles, const char ** templateFiles, in
         long time = (after.tv_sec * 1000000 + after.tv_usec)-(before.tv_sec * 1000000 + before.tv_usec);
         printf("Took %ld.%ld seconds\n", time/1000000, time%1000000);
 	long throughput = (search.x-template.x)*(search.y - template.y)*template.x*template.y*360;
-	printf("%ld px/sec", throughput/time);
+	printf("%ld px/sec\n", throughput/time);
 
         
     }
