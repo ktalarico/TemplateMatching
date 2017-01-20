@@ -294,6 +294,8 @@ void runTemplateMatch(const char ** searchFiles, const char ** templateFiles, in
         gettimeofday(&after, NULL);
         long time = (after.tv_sec * 1000000 + after.tv_usec)-(before.tv_sec * 1000000 + before.tv_usec);
         printf("Took %ld.%ld seconds\n", time/1000000, time%1000000);
+	long throughput = (search.x-template.x)*(search.y - template.y)*template.x*template.y*360;
+	printf("%ld px/sec", throughput/time);
 
         
     }
@@ -303,10 +305,13 @@ void runTemplateMatch(const char ** searchFiles, const char ** templateFiles, in
 
 int main(int argc, const char * argv[]) {
 
-  int par;
+  int threads;
 
-  if(argc == 2)par=atoi(argv[1]);
-  if(par)set OMP_NUM_THREADS=1;
+  if(argc == 2)
+    {
+    threads=atoi(argv[1]);
+    omp_set_num_threads(threads);
+    }
   
     image test, rotate;
     test.data = stbi_load("images/license.png", &(test.x), &(test.y), &test.n, 0);
