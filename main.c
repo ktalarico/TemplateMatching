@@ -6,6 +6,7 @@
 //  Ugly but it does the do.
 //
 //
+// throughput calculation (sx-tx)*(sy-ty)*tx*ty*rot
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,6 +15,8 @@
 #include <sys/time.h>
 
 #include <stdint.h>
+
+#include <omp.h>
 
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -76,7 +79,8 @@ int calculateCoordXY(int x, int y, int imageWidth, int imageHeight) {
     //offset = (row * NUMCOLS) + column
     if ((x*y) > (imageWidth*imageHeight)) return -1;
     if (x > imageWidth || x < 0) return -1;
-    if (y > imageHeight || y < 0) return -1;
+
+if (y > imageHeight || y < 0) return -1;
     
     return (3*((y*imageWidth)+x));
 }
@@ -85,13 +89,15 @@ int calculateCoordXY(int x, int y, int imageWidth, int imageHeight) {
 
 sol templateMatch(image search, image template) {
     int lastSSD = INT_MAX;
-    SSD colorD;
     
     sol solution = {};
-    image templateRotation = {};
     //loop through search image
-    int comparision = 0;
+    //int comparision = 0;
+    
+#pragma omp parallel for schedule(dynamic,1)
     for (int rotation = 0; rotation < ROTATION; rotation++) {
+        image templateRotation = {};
+	SSD colorD;
         rotateImage(&template, &templateRotation, rotation);
         printf("Rotation: %i\n", rotation);
 
@@ -102,7 +108,7 @@ sol templateMatch(image search, image template) {
                 //loop through template starting position
                 for (int tx = 0; tx < templateRotation.x; tx++) {
                     for (int ty = 0; ty < templateRotation.y; ty++) {
-                        comparision++;
+		      //comparision++;
                         int soffset = calculateCoord(sx+tx, sy+ty, search.x);
                         int toffset = calculateCoord(tx, ty, templateRotation.x);
                         
@@ -121,6 +127,7 @@ sol templateMatch(image search, image template) {
                 
                 colorD.sum = colorD.SSDb + colorD.SSDg + colorD.SSDr;
 
+#pragma omp critical
                 if (lastSSD > colorD.sum) {
                     lastSSD = colorD.sum;
                     solution.x = sx;
@@ -295,9 +302,14 @@ void runTemplateMatch(const char ** searchFiles, const char ** templateFiles, in
 
 
 int main(int argc, const char * argv[]) {
-    
+
+  int par;
+
+  if(argc == 2)par=atoi(argv[1]);
+  if(par)set OMP_NUM_THREADS=1;
+  
     image test, rotate;
-    test.data = stbi_load("images/license.png", &test.x, &test.y, &test.n, 0);
+    test.data = stbi_load("images/license.png", &(test.x), &(test.y), &test.n, 0);
     squareImage(&test);
 
     //rotateImage(&test, &rotate, 25);
