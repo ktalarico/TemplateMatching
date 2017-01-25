@@ -89,7 +89,7 @@ if (y > imageHeight || y < 0) return -1;
 
 sol templateMatch(image search, image template) {
     int lastSSD = INT_MAX;
-    
+        
     sol solution = {};
     //loop through search image
     //int comparision = 0;
@@ -99,7 +99,7 @@ sol templateMatch(image search, image template) {
         image templateRotation = {};
 	SSD colorD;
         rotateImage(&template, &templateRotation, rotation);
-        printf("Rotation: %i\n", rotation);
+        //printf("Rotation: %i\n", rotation);
 
         for (int sx = 0; sx <= search.x - template.x; sx++) {
             for (int sy = 0; sy <= search.y - template.y; sy++ ) {
@@ -294,8 +294,8 @@ void runTemplateMatch(const char ** searchFiles, const char ** templateFiles, in
         gettimeofday(&after, NULL);
         long time = (after.tv_sec * 1000000 + after.tv_usec)-(before.tv_sec * 1000000 + before.tv_usec);
         printf("Took %ld.%ld seconds\n", time/1000000, time%1000000);
-	long throughput = (search.x-template.x)*(search.y - template.y)*template.x*template.y*360;
-	printf("%ld px/sec\n", throughput/time);
+	long throughput = ((long)(search.x-template.x))*((long)(search.y - template.y))*(long)template.x*(long)template.y*(long)ROTATION;
+	printf("%f Mpx/sec\n", (throughput/(float)time));
 
         
     }
