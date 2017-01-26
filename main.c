@@ -320,8 +320,8 @@ int main(int argc, const char * argv[]) {
     //rotateImage(&test, &rotate, 25);
     //writeImage(test, "test.png");
     
-    const char *searchNames[256] = {"images/s1.png", "images/s2.png"};
-    const char *templateNames[256] = {"images/t1.png", "images/t2.png"};
+    const char *searchNames[256] = {"images/impreza_rally.png", "images/lancia.png"};
+    const char *templateNames[256] = {"images/impreza_rally_t.png", "images/lancia_t.png"};
     
     int filesToRun = 1; //Use 2 to run both s1 and s2
     
