@@ -1,4 +1,4 @@
-/users/ktalaric/TemplateMatching/tm 1
-/users/ktalaric/TemplateMatching/tm 2
-/users/ktalaric/TemplateMatching/tm 4
-/users/ktalaric/TemplateMatching/tm 8
+#!/bin/sh
+#PBS -l nodes=1:ppn=8
+./tm 8
+
