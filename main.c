@@ -30,6 +30,10 @@
 #else
 #define ROTATION 1
 #endif
+//needed since no M_pi in c99
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 typedef struct SumSquareD {
     int SSDr, SSDg, SSDb, sum;

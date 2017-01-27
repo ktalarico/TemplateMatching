@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-fopenmp -O3 -march=native -mtune=native 
+CFLAGS=-fopenmp -O3 -march=native -mtune=native -std=c99
 LDFLAGS=-lm -fopenmp 
 
 tm: main.o
